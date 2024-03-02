@@ -70,5 +70,11 @@ See the [Xiaomi_CyberGear_Arduino](https://github.com/DanielKalicki/Xiaomi_Cyber
 ### Documentation:
 Xiaomi CyberGear technical drawing:
 <p align="center">
-  <img src="https://raw.githubusercontent.com/DanielKalicki/Xiaomi_CyberGear_Arduino/tree/main/technical_drawing/Xiaomi CyberGear.jpeg">
+  <img src="https://raw.githubusercontent.com/DanielKalicki/Xiaomi_CyberGear_Arduino/main/technical_drawing/Xiaomi CyberGear.jpeg">
+</p>
+
+### Setup
+Test were perform using [Seeed Studio XIAO ESP32S3](https://www.seeedstudio.com/XIAO-ESP32S3-p-5627.html) development board, [CANBus Unit(CA-IS3050G)](https://shop.m5stack.com/products/canbus-unitca-is3050g) was used as CANBus transceiver to connect with Xiaomi CyberGear. (Li-Poly) Tattu 22.2 V 1550mAh battery was used as a power supply for the motor.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/DanielKalicki/Xiaomi_CyberGear_Arduino/main/_img/test_setup.jpeg">
 </p>
