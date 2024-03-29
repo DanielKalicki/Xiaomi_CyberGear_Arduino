@@ -23,13 +23,12 @@ void setup() {
 
   // Serial.begin(115200) will be called in cybergear.init_twai function 
 
-  cybergear.init_motor(MODE_POSITION);
+  cybergear.init_motor(MODE_MOTION);
   cybergear.set_limit_speed(10.0f); /* set the maximum speed of the motor */
   cybergear.set_limit_current(5.0); /* current limit allows faster operation */
   cybergear.enable_motor(); /* turn on the motor */
 
   cybergear.set_position_ref(0.0); /* set initial rotor position */
-  // cybergear.stop_motor(); /* stop the motor */
 
   // TWAI driver is now successfully installed and started
   driver_installed = true;
@@ -91,14 +90,22 @@ void loop() {
     return;
   }
 
-  delay(1000);
+  delay(10000);
 
   static float pos = 0.0;
   static float inc_val = 1;
   pos += inc_val;
   if (pos > 10.0) inc_val = -1;
   if (pos < -10.0) inc_val = 1;
-  cybergear.set_position_ref(pos);
+
+  XiaomiCyberGearMotionCommand cmd;
+  cmd.position = pos;
+  /* I dont recommend bellow parematers values - the motor is heavily oscillating */
+  cmd.torque = 3.0f;
+  cmd.kp = 1.0f;
+  cmd.kd = 0.1f;
+
+  cybergear.send_motion_control(cmd);
 
   check_alerts();
 

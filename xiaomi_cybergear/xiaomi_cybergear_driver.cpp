@@ -88,12 +88,37 @@ void XiaomiCyberGearDriver::set_limit_torque(float torque){
     _send_can_float_package(_cybergear_can_id, ADDR_LIMIT_TORQUE, torque, 0.0f, T_MAX);
 }
 
+// MODE_MOTION
+void XiaomiCyberGearDriver::send_motion_control(XiaomiCyberGearMotionCommand cmd){
+    uint8_t data[8] = {0x00};
+
+    uint16_t position = _float_to_uint(cmd.position, POS_MIN, POS_MAX, 16);
+    data[0] = position >> 8;
+    data[1] = position & 0x00FF;
+
+    uint16_t speed = _float_to_uint(cmd.speed, V_MIN, V_MAX, 16);
+    data[2] = speed >> 8;
+    data[3] = speed & 0x00FF;
+
+    uint16_t kp = _float_to_uint(cmd.kp, KP_MIN, KP_MAX, 16);
+    data[4] = kp >> 8;
+    data[5] = kp & 0x00FF;
+
+    uint16_t kd = _float_to_uint(cmd.kd, KD_MIN, KD_MAX, 16);
+    data[4] = kd >> 8;
+    data[5] = kd & 0x00FF;
+
+    uint16_t torque = _float_to_uint(cmd.torque, T_MIN, T_MAX, 16);
+
+    _send_can_package(_cybergear_can_id, CMD_POSITION, torque, 8, data);
+}
+
 // MODE_CURRENT
 void XiaomiCyberGearDriver::set_current_kp(float kp){
-    _send_can_float_package(_cybergear_can_id, ADDR_CURRENT_KP, kp, 0.0f, KP_MAX);
+    _send_can_float_package(_cybergear_can_id, ADDR_CURRENT_KP, kp, KP_MIN, KP_MAX);
 }
 void XiaomiCyberGearDriver::set_current_ki(float ki){
-    _send_can_float_package(_cybergear_can_id, ADDR_CURRENT_KI, ki, 0.0f, KI_MAX);
+    _send_can_float_package(_cybergear_can_id, ADDR_CURRENT_KI, ki, KI_MIN, KI_MAX);
 }
 void XiaomiCyberGearDriver::set_current_filter_gain(float gain){
     _send_can_float_package(_cybergear_can_id, ADDR_CURRENT_FILTER_GAIN, gain, CURRENT_FILTER_GAIN_MIN, CURRENT_FILTER_GAIN_MAX);
@@ -104,7 +129,7 @@ void XiaomiCyberGearDriver::set_current_ref(float current){
 
 // MODE_POSITION
 void XiaomiCyberGearDriver::set_position_kp(float kp){
-    _send_can_float_package(_cybergear_can_id, ADDR_POSITION_KP, kp, 0.0f, KP_MAX);
+    _send_can_float_package(_cybergear_can_id, ADDR_POSITION_KP, kp, KP_MIN, KP_MAX);
 }
 void XiaomiCyberGearDriver::set_position_ref(float position){
     _send_can_float_package(_cybergear_can_id, ADDR_POSITION_REF, position, POS_MIN, POS_MAX);
@@ -112,21 +137,26 @@ void XiaomiCyberGearDriver::set_position_ref(float position){
 
 // MODE_SPEED
 void XiaomiCyberGearDriver::set_speed_kp(float kp){
-    _send_can_float_package(_cybergear_can_id, ADDR_SPEED_KP, kp, 0.0f, KP_MAX);
+    _send_can_float_package(_cybergear_can_id, ADDR_SPEED_KP, kp, KP_MIN, KP_MAX);
 }
 void XiaomiCyberGearDriver::set_speed_ki(float ki){
-    _send_can_float_package(_cybergear_can_id, ADDR_SPEED_KI, ki, 0.0f, KI_MAX);
+    _send_can_float_package(_cybergear_can_id, ADDR_SPEED_KI, ki, KI_MIN, KI_MAX);
 }
 void XiaomiCyberGearDriver::set_speed_ref(float speed){
     _send_can_float_package(_cybergear_can_id, ADDR_SPEED_REF, speed, V_MIN, V_MAX);
 }
 
-void XiaomiCyberGearDriver::change_motor_can_id(uint8_t can_id){}
+void XiaomiCyberGearDriver::set_motor_can_id(uint8_t can_id){
+    uint8_t data[8] = {0x00};
+    uint16_t option = can_id << 8 | _master_can_id;
+    _send_can_package(_cybergear_can_id, CMD_SET_CAN_ID, option, 8, data);
+    _cybergear_can_id = can_id;
+}
 
 uint8_t XiaomiCyberGearDriver::get_run_mode() const {
     return _run_mode;
 }
-uint8_t XiaomiCyberGearDriver::get_motor_id() const {
+uint8_t XiaomiCyberGearDriver::get_motor_can_id() const {
     return _cybergear_can_id;
 }
 
@@ -150,7 +180,8 @@ XiaomiCyberGearStatus XiaomiCyberGearDriver::get_status() const {
 }
 
 /* PRIVATE */
-int XiaomiCyberGearDriver::_float_to_uint(float x, float x_min, float x_max, int bits){
+uint16_t XiaomiCyberGearDriver::_float_to_uint(float x, float x_min, float x_max, int bits){
+    if (bits>16) bits=16;
     float span = x_max - x_min;
     float offset = x_min;
     if(x > x_max) x = x_max;

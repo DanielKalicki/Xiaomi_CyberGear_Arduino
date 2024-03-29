@@ -6,7 +6,7 @@
 #define CMD_ENABLE                    0x3
 #define CMD_STOP                      0x4
 #define CMD_SET_MECH_POSITION_TO_ZERO 0x6
-#define CMD_CHANGE_CAN_ID             0x7
+#define CMD_SET_CAN_ID                0x7
 #define CMD_RAM_READ                 0x11
 #define CMD_RAM_WRITE                0x12
 #define CMD_GET_STATUS               0x15
@@ -36,6 +36,7 @@
 #define V_MAX                      30.0f
 #define KP_MIN                      0.0f
 #define KP_MAX                    500.0f
+#define KI_MIN                      0.0f
 #define KI_MAX                     10.0f
 #define KD_MIN                      0.0f
 #define KD_MAX                      5.0f
