@@ -105,8 +105,8 @@ void XiaomiCyberGearDriver::send_motion_control(XiaomiCyberGearMotionCommand cmd
     data[5] = kp & 0x00FF;
 
     uint16_t kd = _float_to_uint(cmd.kd, KD_MIN, KD_MAX, 16);
-    data[4] = kd >> 8;
-    data[5] = kd & 0x00FF;
+    data[6] = kd >> 8;
+    data[7] = kd & 0x00FF;
 
     uint16_t torque = _float_to_uint(cmd.torque, T_MIN, T_MAX, 16);
 
