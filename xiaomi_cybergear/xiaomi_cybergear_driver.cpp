@@ -218,6 +218,6 @@ void XiaomiCyberGearDriver::_send_can_float_package(uint8_t can_id, uint16_t add
 
     float val = (max < value) ? max : value;
     val = (min > value) ? min : value;
-    memcpy(&data[4], &value, 4);
+    memcpy(&data[4], &val, 4);
     _send_can_package(can_id, CMD_RAM_WRITE, _master_can_id, 8, data);
 }
