@@ -197,7 +197,7 @@ void XiaomiCyberGearDriver::_send_can_package(uint8_t can_id, uint8_t cmd_id, ui
     uint32_t id = cmd_id << 24 | option << 8 | can_id;
 
     twai_message_t message;
-    message.extd = id;
+    message.extd = 1; //enable extended frame format
     message.identifier = id;
     message.data_length_code = len;
     for (int i = 0; i < len; i++) {
