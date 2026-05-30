@@ -70,8 +70,8 @@ void XiaomiCyberGearDriver::stop_motor(){
     _send_can_package(_cybergear_can_id, CMD_STOP, _master_can_id, 8, data);
 }
 void XiaomiCyberGearDriver::set_zero_position(){
-    uint8_t data[8] = {0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    _send_can_package(_cybergear_can_id, CMD_SET_MECH_POSITION_TO_ZERO, _master_can_id, 8, data);
+    static const uint8_t data[8] = {0x01};
+    _send_can_package(_cybergear_can_id, CMD_SET_MECH_POSITION_TO_ZERO, _master_can_id, 8, const_cast<uint8_t*>(data));
 }
 void XiaomiCyberGearDriver::set_run_mode(uint8_t mode){
     _run_mode = mode;
@@ -183,45 +183,45 @@ XiaomiCyberGearStatus XiaomiCyberGearDriver::get_status() const {
     return _status;
 }
 
+////////////////////////////////// FIXED //////////////////////
 /* PRIVATE */
-uint16_t XiaomiCyberGearDriver::_float_to_uint(float x, float x_min, float x_max, int bits){
-    if (bits>16) bits=16;
+uint16_t XiaomiCyberGearDriver::_float_to_uint(float x, float x_min, float x_max) {
     float span = x_max - x_min;
-    float offset = x_min;
-    if(x > x_max) x = x_max;
-    else if(x < x_min) x = x_min;
-    return (int) ((x-offset)*((float)((1<<bits)-1))/span);
-}
-float XiaomiCyberGearDriver::_uint_to_float(uint16_t x, float x_min, float x_max){
-    uint16_t type_max = 0xFFFF;
-    float span = x_max - x_min;
-    return (float) x / type_max * span + x_min;
-}
-void XiaomiCyberGearDriver::_send_can_package(uint8_t can_id, uint8_t cmd_id, uint16_t option, uint8_t len, uint8_t* data){
-    uint32_t id = cmd_id << 24 | option << 8 | can_id;
+    float inv_span = 1.0f / span;
+    
+    x = (x > x_max) ? x_max : ((x < x_min) ? x_min : x);
 
-    twai_message_t message;
-    message.extd = 1; //enable extended frame format
-    message.identifier = id;
-    message.data_length_code = len;
-    for (int i = 0; i < len; i++) {
-        message.data[i] = data[i];
-    }
+    return (uint16_t)((x - x_min) * 65535.0f * inv_span); // using 65535 (2^16 - 1) instead bitshift
+}
+inline float XiaomiCyberGearDriver::_uint_to_float(uint16_t x, float x_min, float x_max){
+    return (x * (1.0f / 65535.0f)) * (x_max - x_min) + x_min;
+}
+void XiaomiCyberGearDriver::_send_can_package(uint8_t can_id, uint8_t cmd_id, uint16_t option, uint8_t (&data)[8]){
+    twai_message_t msg = {
+        .extd = 1,
+        .identifier = ((uint32_t)cmd_id << 24) | ((uint32_t)option << 8) | can_id, // Using uint32_t in cmd_id and option to not confuse compiler with uint8_t in the function parameter (ensure reliability)
+        .data_length_code = 8, // All Xiaomi Cybergear protocol commands are 8 bytes length so forcing always 8 bytes for data length
+        .rtr = 0 // Ensure RTR is 0 so multiple calls to this function do not pick memory garbage bits
+    };
+
+    //copy bytes from parameter to msg
+    *(uint64_t*)msg.data = *(uint64_t*)data;
 
     // Queue message for transmission
-    if (twai_transmit(&message, pdMS_TO_TICKS(1000)) == ESP_OK) {
-        // if (_use_serial_debug) Serial.println("Message queued for transmission\n");
-    } else {
+    if (twai_transmit(&msg, pdMS_TO_TICKS(1000)) != ESP_OK) {
         if (_use_serial_debug) Serial.println("Failed to queue message for transmission\n");
     }
 }
 void XiaomiCyberGearDriver::_send_can_float_package(uint8_t can_id, uint16_t addr, float value, float min, float max){
-    uint8_t data[8] = {0x00};
-    data[0] = addr & 0x00FF;
-    data[1] = addr >> 8;
+    uint8_t data[8];
+    
+    *(uint16_t*)data = addr; 
+    data[2] = 0x00;
+    data[3] = 0x00;
 
-    float val = (max < value) ? max : value;
-    val = (min > value) ? min : value;
-    memcpy(&data[4], &val, 4);
-    _send_can_package(can_id, CMD_RAM_WRITE, _master_can_id, 8, data);
+    float val = (value > max) ? max : ((value < min) ? min : value); // fixed bad comparison
+
+    *(float*)&data[4] = val;
+
+    _send_can_package(can_id, CMD_RAM_WRITE, _master_can_id, data);
 }
